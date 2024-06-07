@@ -1,0 +1,173 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model roles {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  name        String
+  description String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  users users[]
+}
+
+model positions {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  name        String
+  description String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  employee employees[]
+}
+
+model users {
+  id       String     @id @default(uuid())
+  role_id  String?
+  username String     @unique
+  password String
+  status   UserStatus @default(OFFLINE)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  role roles? @relation(fields: [role_id], references: [id])
+
+  employees employees?
+}
+
+model employees {
+  id           String  @id @default(uuid())
+  user_id      String  @unique
+  position_id  String
+  code         String  @unique
+  fullname     String
+  email        String
+  phone_number String?
+  address      String?
+  is_active    Boolean @default(true)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  position positions @relation(fields: [position_id], references: [id])
+  user     users     @relation(fields: [user_id], references: [id])
+
+  member members[]
+}
+
+model projects {
+  id          String        @id @default(uuid())
+  code        String        @unique
+  name        String
+  description String
+  start_date  DateTime
+  end_date    DateTime
+  status      ProjectStatus @default(CREATED)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  member members[]
+}
+
+model activities {
+  id          String           @id @default(uuid())
+  member_id   String
+  code        String           @unique
+  date        DateTime
+  category    ActivityCategory
+  description String
+  time_spent  Float
+  note        String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  member members @relation(fields: [member_id], references: [id])
+}
+
+model members {
+  id             String               @id @default(uuid())
+  employee_id    String
+  project_id     String
+  responsibility MemberResponsibility
+  description    String
+  is_active      Boolean              @default(true)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  employee   employees @relation(fields: [employee_id], references: [id])
+  project    projects  @relation(fields: [project_id], references: [id])
+
+  activities activities[]
+}
+
+enum ProjectStatus {
+  INITIATION
+  PLANNING
+  DEVELOPMENT
+  TESTING
+  COMPLETE
+  SUSPEND
+  CREATED
+  DISCONTINUED
+}
+
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  AWAY
+}
+
+enum MemberResponsibility {
+  FRONT_END
+  BACK_END
+  FULL_STACK
+  MOBILE
+  DEV_OPS
+  UI_UX
+  QA_TESTER
+  PRODUCT_OWNER
+  PROJECT_LEAD
+  PROJECT_ANALYST
+  TECH_LEAD
+}
+
+enum ActivityCategory {
+  INITIATE
+  TASK
+  RESEARCH
+  STUDY
+  DAILY_REPORT
+  IDLE
+  OFF_WORK
+  OFF_SICK
+  MEETING_EXTERNAL
+  MEETING_INTERNAL
+  DISCUSSION
+  OTHERS
+}
