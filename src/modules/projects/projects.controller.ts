@@ -28,6 +28,12 @@ export class ProjectsController {
     return await this.projectsService.findAll(params);
   }
 
+  @Get('logs/:code')
+  @UseGuards(AuthGuard)
+  async findManyLogsByCode(@Param('code') code: string, @Req() req: any) {
+    return await this.projectsService.findManyLogs(code, req.user.id);
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(

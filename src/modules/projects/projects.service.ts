@@ -94,7 +94,7 @@ export class ProjectsService {
       let where: Prisma.projectsWhereInput = {
         deleted_at: null,
         member: {
-          every: {
+          some: {
             employee: {
               user_id,
             },
@@ -136,6 +136,55 @@ export class ProjectsService {
           _count: true,
         },
       });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async findManyLogs(code: string, user_id: string) {
+    try {
+      const detail = await this.prismaService.projects.findUnique({
+        where: { code, deleted_at: null },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          description: true,
+          start_date: true,
+          end_date: true,
+          status: true,
+          member: {
+            where: { employee: { user_id }, is_active: true },
+            select: {
+              id: true,
+              responsibility: true,
+              description: true,
+              employee: {
+                select: {
+                  code: true,
+                  fullname: true,
+                  position: {
+                    select: {
+                      code: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+              activities: {
+                where: { deleted_at: null },
+                orderBy: {
+                  created_at: 'desc',
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!detail) throw new NotFoundException('Project is not found');
+
+      return detail;
     } catch (error) {
       throw error;
     }

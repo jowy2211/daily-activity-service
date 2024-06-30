@@ -1,34 +1,50 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
+import { AuthGuard, ParamsTableDto } from 'src/utils';
 
 @Controller('activities')
+@UseGuards(AuthGuard)
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
-  create(@Body() createActivityDto: CreateActivityDto) {
-    return this.activitiesService.create(createActivityDto);
+  @HttpCode(HttpStatus.CREATED)
+  create(@Body() payload: CreateActivityDto) {
+    return this.activitiesService.create(payload);
   }
 
   @Get()
-  findAll() {
-    return this.activitiesService.findAll();
+  findAll(@Query() params: ParamsTableDto) {
+    return this.activitiesService.findAll(params);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.activitiesService.findOne(+id);
+  @Get(':code')
+  findOne(@Param('code') code: string) {
+    return this.activitiesService.findOne(code);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateActivityDto: UpdateActivityDto) {
-    return this.activitiesService.update(+id, updateActivityDto);
+  @Patch(':code')
+  update(@Param('code') code: string, @Body() payload: UpdateActivityDto) {
+    return this.activitiesService.update(code, payload);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.activitiesService.remove(+id);
+  @Delete(':code')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('code') code: string) {
+    return this.activitiesService.remove(code);
   }
 }

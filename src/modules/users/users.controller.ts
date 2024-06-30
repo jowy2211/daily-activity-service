@@ -56,7 +56,7 @@ export class UsersController {
   }
 
   // Employee
-  @Get('employee')
+  @Get('employees')
   @UseGuards(AuthGuard)
   async findEmployee(@Req() req: any, @Query('code') code: string) {
     return await this.usersService.findAllEmployee(req.user.id, code);
