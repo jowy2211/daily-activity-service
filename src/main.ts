@@ -2,6 +2,7 @@ import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { PrismaClientExceptionFilter } from 'nestjs-prisma';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { ResponseInterceptor } from './utils';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,9 +26,10 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
+  app.useGlobalInterceptors(new ResponseInterceptor());
 
   const logger = new Logger('Nest Application');
-  await app.listen(3000);
-  logger.verbose('App running on port: 3000');
+  await app.listen(3001);
+  logger.verbose('App running on port: 3001');
 }
 bootstrap();

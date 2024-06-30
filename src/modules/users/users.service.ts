@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'nestjs-prisma';
 import { users } from '@prisma/client';
 import { hash } from 'bcrypt';
+import { ParamsTableDto } from 'src/utils';
+import { UserRole } from 'src/utils/helper/enum.utils';
 
 @Injectable()
 export class UsersService {
@@ -11,18 +17,74 @@ export class UsersService {
 
   async create(payload: CreateUserDto) {
     try {
-      const hashPassword = await hash(payload.password, 10);
+      return await this.prismaService.$transaction(async (tx) => {
+        const { employees, ...user } = payload;
+        const checkUser = await tx.users.findUnique({
+          where: { username: payload.username },
+        });
 
-      return await this.prismaService.users.create({
-        data: { ...payload, password: hashPassword },
+        if (checkUser)
+          throw new BadRequestException(
+            'User already registered. Duplicate user',
+          );
+
+        const hashPassword = await hash(user.password, 10);
+        const employeeCode = `EMP${Date.now()}`;
+
+        return await tx.users.create({
+          data: {
+            username: user.username,
+            password: hashPassword,
+            role_id: user.role_id,
+            employees: {
+              create: {
+                code: employeeCode,
+                fullname: employees.fullname,
+                email: employees.email,
+                address: employees.address,
+                phone_number: employees.phone_number,
+                position_id: employees.position_id,
+              },
+            },
+          },
+          select: {
+            id: true,
+            username: true,
+            status: true,
+            role: {
+              select: {
+                code: true,
+                name: true,
+              },
+            },
+          },
+        });
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async findAll(query: ParamsTableDto, user_id: string): Promise<any[]> {
+    try {
+      return await this.prismaService.users.findMany({
+        where: { deleted_at: null, id: { not: user_id } },
         select: {
           id: true,
-          username: true,
-          status: true,
-          role: {
+          created_at: true,
+          updated_at: true,
+          employees: {
             select: {
               code: true,
-              name: true,
+              fullname: true,
+              email: true,
+              phone_number: true,
+              position: {
+                select: {
+                  code: true,
+                  name: true,
+                },
+              },
             },
           },
         },
@@ -32,47 +94,157 @@ export class UsersService {
     }
   }
 
-  async findAll(query: any): Promise<users[]> {
+  async findOne(code: string) {
     try {
-      const result = await this.prismaService.users.findMany();
+      const employee = await this.prismaService.employees.findUnique({
+        where: { code },
+      });
 
-      return result;
-    } catch (error) {
-      throw error;
-    }
-  }
+      if (!employee) throw new NotFoundException('User is not found.');
 
-  async findOne(id: string) {
-    try {
-      const detail = await this.prismaService.users.findUnique({
-        where: { id, deleted_at: null },
+      return await this.prismaService.users.findUnique({
+        where: { id: employee.user_id, deleted_at: null },
         select: {
-          id: true,
           role_id: true,
           username: true,
-          status: true,
-          role: {
+          employees: {
             select: {
-              code: true,
-              name: true,
+              fullname: true,
+              email: true,
+              phone_number: true,
+              address: true,
+              position_id: true,
             },
           },
         },
       });
-
-      if (!detail) throw new NotFoundException('User is not found.');
-
-      return detail;
     } catch (error) {
       throw error;
     }
   }
 
-  update(id: string, payload: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(code: string, payload: UpdateUserDto) {
+    try {
+      return await this.prismaService.$transaction(async (tx) => {
+        const checkEmployee = await tx.employees.findUnique({
+          where: { code, deleted_at: null },
+        });
+
+        if (!checkEmployee) throw new NotFoundException('User is not found');
+
+        let updatePassword = {};
+
+        if (payload?.password) {
+          const hashPassword = await hash(payload.password, 10);
+
+          updatePassword = {
+            password: hashPassword,
+          };
+        }
+
+        return await tx.users.update({
+          where: { id: checkEmployee.user_id, deleted_at: null },
+          data: {
+            ...updatePassword,
+            employees: {
+              update: {
+                fullname: payload.fullname,
+                email: payload.email,
+                address: payload.address,
+                phone_number: payload.phone_number,
+                position_id: payload.position_id,
+              },
+            },
+          },
+          include: { employees: true },
+        });
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} user`;
+  async remove(id: string) {
+    try {
+      return await this.prismaService.$transaction(async (tx) => {
+        const checkUser = await tx.users.findUnique({
+          where: { id, deleted_at: null },
+        });
+
+        if (!checkUser) throw new NotFoundException('User is not found');
+
+        return await tx.users.update({
+          where: { id, deleted_at: null },
+          data: {
+            deleted_at: new Date(),
+            employees: {
+              update: {
+                is_active: false,
+                deleted_at: new Date(),
+              },
+            },
+          },
+        });
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Employee
+  async findAllEmployee(user_id: string, code: string) {
+    try {
+      return await this.prismaService.employees
+        .findMany({
+          where: {
+            member: {
+              every: {
+                project: {
+                  code: {
+                    not: code,
+                  },
+                },
+              },
+            },
+            user: {
+              role: {
+                code: {
+                  not: {
+                    in: [UserRole.ADMIN, UserRole.EXECUTIVE],
+                  },
+                },
+              },
+            },
+            user_id: {
+              not: user_id,
+            },
+            deleted_at: null,
+            is_active: true,
+          },
+          select: {
+            id: true,
+            fullname: true,
+            position: {
+              select: {
+                code: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            position: {
+              code: 'asc',
+            },
+          },
+        })
+        .then((res) => {
+          return res.map((item) => ({
+            text: `${item.fullname} [${item.position.name}]`,
+            value: item.id,
+          }));
+        });
+    } catch (error) {
+      throw error;
+    }
   }
 }

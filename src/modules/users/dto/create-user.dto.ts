@@ -1,4 +1,32 @@
-import { IsNotEmpty, MinLength } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsEmail,
+  IsMobilePhone,
+  IsNotEmpty,
+  IsOptional,
+  MinLength,
+} from 'class-validator';
+
+export class EmployeeDto {
+  @IsNotEmpty()
+  readonly position_id: string;
+
+  @IsNotEmpty()
+  readonly fullname: string;
+
+  @IsNotEmpty()
+  @IsEmail()
+  readonly email: string;
+
+  @Transform((params) => params.value || null)
+  @IsOptional()
+  @IsMobilePhone('id-ID')
+  readonly phone_number?: string;
+
+  @Transform((params) => params.value || null)
+  @IsOptional()
+  readonly address?: string;
+}
 
 export class CreateUserDto {
   @IsNotEmpty({ message: 'Username is required.' })
@@ -10,4 +38,8 @@ export class CreateUserDto {
 
   @IsNotEmpty({ message: 'Role is required.' })
   readonly role_id: string;
+
+  @IsNotEmpty()
+  @Type(() => EmployeeDto)
+  readonly employees: EmployeeDto;
 }

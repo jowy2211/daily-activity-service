@@ -81,8 +81,8 @@ model projects {
   code        String        @unique
   name        String
   description String
-  start_date  DateTime
-  end_date    DateTime
+  start_date  String?
+  end_date    String?
   status      ProjectStatus @default(CREATED)
 
   created_at DateTime  @default(now())
@@ -115,6 +115,7 @@ model members {
   project_id     String
   responsibility MemberResponsibility
   description    String
+  is_captain     Boolean              @default(false)
   is_active      Boolean              @default(true)
 
   created_at DateTime  @default(now())
