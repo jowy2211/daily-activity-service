@@ -5,11 +5,11 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthDto } from './dto/auth.dto';
-import { PrismaService } from 'nestjs-prisma';
-import { compare } from 'bcrypt';
-import { employees, UserStatus } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
+import { employees, UserStatus } from '@prisma/client';
+import { compare } from 'bcrypt';
+import { PrismaService } from 'nestjs-prisma';
+import { AuthDto } from './dto/auth.dto';
 
 interface User {
   username: string;
@@ -55,6 +55,8 @@ export class AuthService {
     if (!getDetail) throw new NotFoundException('User is not found');
 
     const checkPassword = await compare(password, getDetail.password);
+
+    console.log(checkPassword);
 
     if (!checkPassword) throw new UnauthorizedException('Password is invalid');
 

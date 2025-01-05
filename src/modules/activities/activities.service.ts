@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateActivityDto } from './dto/create-activity.dto';
-import { UpdateActivityDto } from './dto/update-activity.dto';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'nestjs-prisma';
 import { ParamsTableDto } from 'src/utils';
+import { CreateActivityDto } from './dto/create-activity.dto';
+import { UpdateActivityDto } from './dto/update-activity.dto';
 
 @Injectable()
 export class ActivitiesService {
@@ -14,17 +15,15 @@ export class ActivitiesService {
         const code = `LOG${Date.now()}`;
 
         return tx.activities.createMany({
-          data: [
-            {
-              code,
-              member_id: payload.member_id,
-              date: new Date(payload.date),
-              category: payload.category,
-              description: payload.description,
-              time_spent: payload.time_spent,
-              note: payload.note,
-            },
-          ],
+          data: payload.logs.map((item) => ({
+            code,
+            member_id: item.member_id,
+            date: new Date(item.date),
+            category: item.category,
+            description: item.description,
+            time_spent: item.time_spent,
+            note: item.note,
+          })),
         });
       });
     } catch (error) {
@@ -32,9 +31,88 @@ export class ActivitiesService {
     }
   }
 
-  async findAll(params: ParamsTableDto) {
+  async findAll(params: ParamsTableDto, member_id: string) {
     try {
-      return await this.prismaService.activities.findMany();
+      return await this.prismaService.activities.findMany({
+        where: { member_id, deleted_at: null },
+        select: {
+          code: true,
+          date: true,
+          description: true,
+          note: true,
+          category: true,
+          time_spent: true,
+          member: {
+            select: {
+              id: true,
+              responsibility: true,
+              description: true,
+              project: {
+                select: {
+                  code: true,
+                  name: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async findMany(params: ParamsTableDto, user_id: string) {
+    try {
+      let where: Prisma.activitiesWhereInput = {
+        member: {
+          employee: { user_id },
+        },
+        deleted_at: null,
+      };
+
+      if (params.search) {
+        where = {
+          ...where,
+          AND: {
+            OR: [
+              {
+                code: {
+                  contains: params.search,
+                },
+              },
+            ],
+          },
+        };
+      }
+
+      return await this.prismaService.activities.findMany({
+        where,
+        orderBy: { date: 'desc' },
+        select: {
+          code: true,
+          date: true,
+          description: true,
+          note: true,
+          category: true,
+          time_spent: true,
+          member: {
+            select: {
+              id: true,
+              responsibility: true,
+              description: true,
+              project: {
+                select: {
+                  code: true,
+                  name: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
+      });
     } catch (error) {
       throw error;
     }

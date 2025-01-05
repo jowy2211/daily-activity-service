@@ -1,9 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateProjectDto } from './dto/create-project.dto';
-import { UpdateProjectDto } from './dto/update-project.dto';
-import { PrismaService } from 'nestjs-prisma';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { members, Prisma, ProjectStatus } from '@prisma/client';
+import { PrismaService } from 'nestjs-prisma';
 import { ParamsTableDto } from 'src/utils';
+import { CreateProjectDto } from './dto/create-project.dto';
+import {
+  UpdateProjectDto,
+  UpdateStatusProjectDto,
+} from './dto/update-project.dto';
 
 @Injectable()
 export class ProjectsService {
@@ -27,6 +34,11 @@ export class ProjectsService {
               responsibility: item.responsibility,
               description: item.description,
               is_active: item.is_active,
+              is_captain: [
+                'PROJECT_LEAD',
+                'PRODUCT_OWNER',
+                'TECH_LEAD',
+              ].includes(item.responsibility),
             };
           }),
         });
@@ -190,7 +202,7 @@ export class ProjectsService {
     }
   }
 
-  async findOne(code: string) {
+  async findOne(code: string, user_id: string) {
     try {
       const detail = await this.prismaService.projects.findUnique({
         where: { code },
@@ -209,12 +221,14 @@ export class ProjectsService {
               responsibility: true,
               description: true,
               is_active: true,
+              is_captain: true,
               employee_id: true,
               employee: {
                 select: {
                   id: true,
                   code: true,
                   fullname: true,
+                  email: true,
                   position: {
                     select: {
                       code: true,
@@ -230,7 +244,17 @@ export class ProjectsService {
 
       if (!detail) throw new NotFoundException('Project is not found');
 
-      return detail;
+      const memberLoggedIn = await this.prismaService.members.findFirst({
+        where: { employee: { user_id }, project_id: detail.id },
+        select: {
+          id: true,
+          responsibility: true,
+          is_active: true,
+          is_captain: true,
+        },
+      });
+
+      return { ...detail, viewer: memberLoggedIn };
     } catch (error) {
       throw error;
     }
@@ -283,6 +307,57 @@ export class ProjectsService {
         }
 
         return detail;
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateStatus(code: string, payload: UpdateStatusProjectDto) {
+    try {
+      const detail = await this.prismaService.projects.findUnique({
+        where: { code, deleted_at: null },
+      });
+
+      if (!detail) throw new BadRequestException('Project is not found');
+
+      return await this.prismaService.projects.update({
+        where: { code },
+        data: { status: payload.status },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          description: true,
+          start_date: true,
+          end_date: true,
+          status: true,
+          created_at: true,
+          member: {
+            select: {
+              id: true,
+              responsibility: true,
+              description: true,
+              is_active: true,
+              is_captain: true,
+              employee_id: true,
+              employee: {
+                select: {
+                  id: true,
+                  code: true,
+                  fullname: true,
+                  email: true,
+                  position: {
+                    select: {
+                      code: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       });
     } catch (error) {
       throw error;

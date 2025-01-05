@@ -1,23 +1,10 @@
-import { ActivityCategory } from '@prisma/client';
-import { IsDecimal, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsArray, IsNotEmpty } from 'class-validator';
+import { ActivityDto } from './activity.dto';
+import { Type } from 'class-transformer';
 
 export class CreateActivityDto {
   @IsNotEmpty()
-  readonly member_id: string;
-
-  @IsNotEmpty()
-  readonly date: string;
-
-  @IsEnum(ActivityCategory)
-  @IsNotEmpty()
-  readonly category: ActivityCategory;
-
-  @IsNotEmpty()
-  readonly description: string;
-
-  @IsDecimal()
-  readonly time_spent: number;
-
-  @IsOptional()
-  readonly note?: string;
+  @IsArray()
+  @Type(() => ActivityDto)
+  readonly logs: ActivityDto[];
 }

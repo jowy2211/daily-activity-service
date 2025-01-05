@@ -1,14 +1,14 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateProjectDto } from './create-project.dto';
-import { MemberResponsibility } from '@prisma/client';
+import { MemberResponsibility, ProjectStatus } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import {
-  IsNotEmpty,
-  IsEnum,
-  IsBoolean,
   IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
   IsOptional,
 } from 'class-validator';
+import { CreateProjectDto } from './create-project.dto';
 
 class UpsertMemberDto {
   @Transform((params) => params.value || null)
@@ -35,4 +35,10 @@ export class UpdateProjectDto extends PartialType(CreateProjectDto) {
   @IsArray()
   @Type(() => UpsertMemberDto)
   readonly member: UpsertMemberDto[];
+}
+
+export class UpdateStatusProjectDto {
+  @IsNotEmpty()
+  @IsEnum(ProjectStatus)
+  readonly status: ProjectStatus;
 }
