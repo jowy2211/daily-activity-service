@@ -14,7 +14,7 @@ import {
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   async create(payload: CreateProjectDto) {
     try {
@@ -55,9 +55,7 @@ export class ProjectsService {
 
   async findAll(params: ParamsTableDto) {
     try {
-      let where: Prisma.projectsWhereInput = {
-        deleted_at: null,
-      };
+      let where: Prisma.projectsWhereInput = {};
 
       if (params.search) {
         where = {
@@ -104,7 +102,6 @@ export class ProjectsService {
   async findMany(user_id: string, params: ParamsTableDto) {
     try {
       let where: Prisma.projectsWhereInput = {
-        deleted_at: null,
         member: {
           some: {
             employee: {
@@ -156,7 +153,7 @@ export class ProjectsService {
   async findManyLogs(code: string, user_id: string) {
     try {
       const detail = await this.prismaService.projects.findUnique({
-        where: { code, deleted_at: null },
+        where: { code },
         select: {
           id: true,
           code: true,
@@ -184,7 +181,6 @@ export class ProjectsService {
                 },
               },
               activities: {
-                where: { deleted_at: null },
                 orderBy: {
                   created_at: 'desc',
                 },
@@ -265,7 +261,7 @@ export class ProjectsService {
       return await this.prismaService.$transaction(async (tx) => {
         const { member, ...project } = payload;
         const detail = await tx.projects.findUnique({
-          where: { code, deleted_at: null },
+          where: { code },
         });
 
         if (!detail) throw new NotFoundException('Project is not found');
@@ -316,7 +312,7 @@ export class ProjectsService {
   async updateStatus(code: string, payload: UpdateStatusProjectDto) {
     try {
       const detail = await this.prismaService.projects.findUnique({
-        where: { code, deleted_at: null },
+        where: { code },
       });
 
       if (!detail) throw new BadRequestException('Project is not found');
@@ -367,7 +363,7 @@ export class ProjectsService {
   async remove(id: string) {
     try {
       const detail = await this.prismaService.projects.findUnique({
-        where: { id, deleted_at: null },
+        where: { id },
       });
 
       if (!detail) throw new NotFoundException('Project is not found');
@@ -376,7 +372,6 @@ export class ProjectsService {
         where: { id },
         data: {
           status: ProjectStatus.DISCONTINUED,
-          deleted_at: new Date(),
         },
       });
     } catch (error) {

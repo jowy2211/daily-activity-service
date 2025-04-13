@@ -19,9 +19,8 @@ model roles {
   name        String
   description String?
 
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   users users[]
 }
@@ -32,9 +31,8 @@ model positions {
   name        String
   description String?
 
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   employee employees[]
 }
@@ -46,9 +44,8 @@ model users {
   password String
   status   UserStatus @default(OFFLINE)
 
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   role roles? @relation(fields: [role_id], references: [id])
 
@@ -66,9 +63,8 @@ model employees {
   address      String?
   is_active    Boolean @default(true)
 
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   position positions @relation(fields: [position_id], references: [id])
   user     users     @relation(fields: [user_id], references: [id])
@@ -81,13 +77,12 @@ model projects {
   code        String        @unique
   name        String
   description String
-  start_date  String?
-  end_date    String?
+  start_date  DateTime
+  end_date    DateTime
   status      ProjectStatus @default(CREATED)
 
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   member members[]
 }
@@ -96,15 +91,14 @@ model activities {
   id          String           @id @default(uuid())
   member_id   String
   code        String           @unique
-  date        DateTime
+  date_at     DateTime
   category    ActivityCategory
   description String
   time_spent  Float
   note        String?
 
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   member members @relation(fields: [member_id], references: [id])
 }
@@ -118,11 +112,11 @@ model members {
   is_captain     Boolean              @default(false)
   is_active      Boolean              @default(true)
 
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
-  employee   employees @relation(fields: [employee_id], references: [id])
-  project    projects  @relation(fields: [project_id], references: [id])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  employee employees @relation(fields: [employee_id], references: [id])
+  project  projects  @relation(fields: [project_id], references: [id])
 
   activities activities[]
 }
@@ -171,4 +165,8 @@ enum ActivityCategory {
   MEETING_INTERNAL
   DISCUSSION
   OTHERS
+  BUG_FIXING
+  CODE_REVIEW
+  DOCUMENTATION
+  TRAINING
 }

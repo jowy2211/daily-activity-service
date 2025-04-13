@@ -23,10 +23,13 @@ import { ProjectsService } from './projects.service';
 
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(private readonly projectsService: ProjectsService) { }
 
   @Get('portal')
-  @UseGuards(AuthGuard, new RolesGuard([UserRole.ADMIN, UserRole.EXECUTIVE]))
+  @UseGuards(
+    AuthGuard,
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER]),
+  )
   async findAll(@Query() params: ParamsTableDto) {
     return await this.projectsService.findAll(params);
   }
@@ -40,7 +43,7 @@ export class ProjectsController {
   @Patch('status/:code')
   @UseGuards(
     AuthGuard,
-    new RolesGuard([UserRole.ADMIN, UserRole.EXECUTIVE, UserRole.STAFF]),
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.STAFF]),
   )
   async updateStatus(
     @Param('code') code: string,
@@ -53,7 +56,7 @@ export class ProjectsController {
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(
     AuthGuard,
-    new RolesGuard([UserRole.ADMIN, UserRole.EXECUTIVE, UserRole.STAFF]),
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.STAFF]),
   )
   async create(@Body() payload: CreateProjectDto) {
     console.log('payload : ', payload);
@@ -61,7 +64,10 @@ export class ProjectsController {
   }
 
   @Get()
-  @UseGuards(AuthGuard, new RolesGuard([UserRole.ADMIN, UserRole.STAFF]))
+  @UseGuards(
+    AuthGuard,
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.STAFF]),
+  )
   async findMany(@Req() req: any, @Query() params: ParamsTableDto) {
     return await this.projectsService.findMany(req.user.id, params);
   }
@@ -69,7 +75,7 @@ export class ProjectsController {
   @Get(':code')
   @UseGuards(
     AuthGuard,
-    new RolesGuard([UserRole.ADMIN, UserRole.EXECUTIVE, UserRole.STAFF]),
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.STAFF]),
   )
   async findOne(@Param('code') code: string, @Req() req: any) {
     return await this.projectsService.findOne(code, req.user.id);
@@ -78,7 +84,7 @@ export class ProjectsController {
   @Patch(':code')
   @UseGuards(
     AuthGuard,
-    new RolesGuard([UserRole.ADMIN, UserRole.EXECUTIVE, UserRole.STAFF]),
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.STAFF]),
   )
   async update(
     @Param('code') code: string,
@@ -89,7 +95,10 @@ export class ProjectsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(AuthGuard, new RolesGuard([UserRole.ADMIN, UserRole.EXECUTIVE]))
+  @UseGuards(
+    AuthGuard,
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER]),
+  )
   async remove(@Param('id') id: string) {
     return await this.projectsService.remove(id);
   }

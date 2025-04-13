@@ -7,7 +7,7 @@ import { UpdateActivityDto } from './dto/update-activity.dto';
 
 @Injectable()
 export class ActivitiesService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   async create(payload: CreateActivityDto) {
     try {
@@ -18,7 +18,7 @@ export class ActivitiesService {
           data: payload.logs.map((item) => ({
             code,
             member_id: item.member_id,
-            date: new Date(item.date),
+            date_at: new Date(item.date),
             category: item.category,
             description: item.description,
             time_spent: item.time_spent,
@@ -34,10 +34,10 @@ export class ActivitiesService {
   async findAll(params: ParamsTableDto, member_id: string) {
     try {
       return await this.prismaService.activities.findMany({
-        where: { member_id, deleted_at: null },
+        where: { member_id },
         select: {
           code: true,
-          date: true,
+          date_at: true,
           description: true,
           note: true,
           category: true,
@@ -69,7 +69,6 @@ export class ActivitiesService {
         member: {
           employee: { user_id },
         },
-        deleted_at: null,
       };
 
       if (params.search) {
@@ -89,10 +88,10 @@ export class ActivitiesService {
 
       return await this.prismaService.activities.findMany({
         where,
-        orderBy: { date: 'desc' },
+        orderBy: { date_at: 'desc' },
         select: {
           code: true,
-          date: true,
+          date_at: true,
           description: true,
           note: true,
           category: true,
@@ -125,7 +124,7 @@ export class ActivitiesService {
         select: {
           id: true,
           code: true,
-          date: true,
+          date_at: true,
           category: true,
           description: true,
           time_spent: true,
@@ -180,7 +179,7 @@ export class ActivitiesService {
   async remove(code: string) {
     try {
       const detail = await this.prismaService.activities.findUnique({
-        where: { code, deleted_at: null },
+        where: { code },
         select: { id: true },
       });
 
@@ -188,7 +187,7 @@ export class ActivitiesService {
 
       await this.prismaService.activities.update({
         where: { id: detail.id },
-        data: { deleted_at: new Date() },
+        data: { updated_at: new Date() },
       });
     } catch (error) {
       throw error;

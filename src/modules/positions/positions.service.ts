@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreatePositionDto } from './dto/create-position.dto';
-import { UpdatePositionDto } from './dto/update-position.dto';
 import { PrismaService } from 'nestjs-prisma';
 import { ParamsTableDto } from 'src/utils';
+import { CreatePositionDto } from './dto/create-position.dto';
+import { UpdatePositionDto } from './dto/update-position.dto';
 
 @Injectable()
 export class PositionsService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   async create(payload: CreatePositionDto) {
     try {
@@ -22,16 +22,12 @@ export class PositionsService {
 
   async findAll(params: ParamsTableDto) {
     try {
-      return await this.prismaService.positions
-        .findMany({
-          where: { deleted_at: null },
-        })
-        .then((res) =>
-          res.map((item) => ({
-            text: `${item.code} - ${item.name}`,
-            value: item.id,
-          })),
-        );
+      return await this.prismaService.positions.findMany().then((res) =>
+        res.map((item) => ({
+          text: `${item.code} - ${item.name}`,
+          value: item.id,
+        })),
+      );
     } catch (error) {
       throw error;
     }
@@ -40,7 +36,7 @@ export class PositionsService {
   async findOne(id: string) {
     try {
       const detail = await this.prismaService.positions.findUnique({
-        where: { id, deleted_at: null },
+        where: { id },
       });
 
       if (!detail) throw new NotFoundException('Position is not found');
@@ -54,13 +50,13 @@ export class PositionsService {
   async update(id: string, payload: UpdatePositionDto) {
     try {
       const detail = await this.prismaService.positions.findUnique({
-        where: { id, deleted_at: null },
+        where: { id },
       });
 
       if (!detail) throw new NotFoundException('Position is not found');
 
       return await this.prismaService.positions.update({
-        where: { id, deleted_at: null },
+        where: { id },
         data: { ...payload },
       });
     } catch (error) {
@@ -71,14 +67,14 @@ export class PositionsService {
   async remove(id: string) {
     try {
       const detail = await this.prismaService.positions.findUnique({
-        where: { id, deleted_at: null },
+        where: { id },
       });
 
       if (!detail) throw new NotFoundException('Position is not found');
 
       return await this.prismaService.positions.update({
-        where: { id, deleted_at: null },
-        data: { deleted_at: new Date() },
+        where: { id },
+        data: { updated_at: new Date() },
       });
     } catch (error) {
       throw error;

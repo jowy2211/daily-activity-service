@@ -1,5 +1,5 @@
 import { ActivityCategory } from '@prisma/client';
-import { IsNotEmpty, IsEnum, IsDecimal, IsOptional } from 'class-validator';
+import { IsDecimal, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class ActivityDto {
   @IsNotEmpty()
@@ -20,4 +20,12 @@ export class ActivityDto {
 
   @IsOptional()
   readonly note?: string;
+}
+
+export class ActivityImportDto {
+  @IsNotEmpty()
+  readonly member_id: string;
+
+  @IsNotEmpty()
+  readonly file: string;
 }

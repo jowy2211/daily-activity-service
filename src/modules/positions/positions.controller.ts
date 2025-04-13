@@ -1,24 +1,27 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { PositionsService } from './positions.service';
-import { CreatePositionDto } from './dto/create-position.dto';
-import { UpdatePositionDto } from './dto/update-position.dto';
 import { AuthGuard, ParamsTableDto, RolesGuard } from 'src/utils';
 import { UserRole } from 'src/utils/helper/enum.utils';
+import { CreatePositionDto } from './dto/create-position.dto';
+import { UpdatePositionDto } from './dto/update-position.dto';
+import { PositionsService } from './positions.service';
 
 @Controller('positions')
-@UseGuards(AuthGuard, new RolesGuard([UserRole.ADMIN, UserRole.EXECUTIVE]))
+@UseGuards(
+  AuthGuard,
+  new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER]),
+)
 export class PositionsController {
-  constructor(private readonly positionsService: PositionsService) {}
+  constructor(private readonly positionsService: PositionsService) { }
 
   @Post()
   async create(@Body() payload: CreatePositionDto) {

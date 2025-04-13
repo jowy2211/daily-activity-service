@@ -3,17 +3,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { PrismaService } from 'nestjs-prisma';
-import { users } from '@prisma/client';
 import { hash } from 'bcrypt';
+import { PrismaService } from 'nestjs-prisma';
 import { ParamsTableDto } from 'src/utils';
 import { UserRole } from 'src/utils/helper/enum.utils';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
   async create(payload: CreateUserDto) {
     try {
@@ -68,7 +67,7 @@ export class UsersService {
   async findAll(query: ParamsTableDto, user_id: string): Promise<any[]> {
     try {
       return await this.prismaService.users.findMany({
-        where: { deleted_at: null, id: { not: user_id } },
+        where: { id: { not: user_id } },
         select: {
           id: true,
           created_at: true,
@@ -103,7 +102,7 @@ export class UsersService {
       if (!employee) throw new NotFoundException('User is not found.');
 
       return await this.prismaService.users.findUnique({
-        where: { id: employee.user_id, deleted_at: null },
+        where: { id: employee.user_id },
         select: {
           role_id: true,
           username: true,
@@ -127,7 +126,7 @@ export class UsersService {
     try {
       return await this.prismaService.$transaction(async (tx) => {
         const checkEmployee = await tx.employees.findUnique({
-          where: { code, deleted_at: null },
+          where: { code },
         });
 
         if (!checkEmployee) throw new NotFoundException('User is not found');
@@ -143,7 +142,7 @@ export class UsersService {
         }
 
         return await tx.users.update({
-          where: { id: checkEmployee.user_id, deleted_at: null },
+          where: { id: checkEmployee.user_id },
           data: {
             ...updatePassword,
             employees: {
@@ -168,19 +167,17 @@ export class UsersService {
     try {
       return await this.prismaService.$transaction(async (tx) => {
         const checkUser = await tx.users.findUnique({
-          where: { id, deleted_at: null },
+          where: { id },
         });
 
         if (!checkUser) throw new NotFoundException('User is not found');
 
         return await tx.users.update({
-          where: { id, deleted_at: null },
+          where: { id },
           data: {
-            deleted_at: new Date(),
             employees: {
               update: {
                 is_active: false,
-                deleted_at: new Date(),
               },
             },
           },
@@ -210,7 +207,7 @@ export class UsersService {
               role: {
                 code: {
                   not: {
-                    in: [UserRole.ADMIN, UserRole.EXECUTIVE],
+                    in: [UserRole.ADMIN, UserRole.PROJECT_MANAGER],
                   },
                 },
               },
@@ -218,7 +215,6 @@ export class UsersService {
             user_id: {
               not: user_id,
             },
-            deleted_at: null,
             is_active: true,
           },
           select: {
