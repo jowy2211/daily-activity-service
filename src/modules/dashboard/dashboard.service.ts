@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'nestjs-prisma';
 import { UserRole } from 'src/utils/helper/enum.utils';
-import { ProjectPerformanceDto } from './dto/dashboard.dto';
+import {
+  ActivityTrendDto,
+  ProductivityDto,
+  ProjectPerformanceDto,
+  WorkloadDto,
+} from './dto/dashboard.dto';
 
 @Injectable()
 export class DashboardService {
@@ -46,7 +51,6 @@ export class DashboardService {
       };
     }
 
-    console.log(whereQueries);
     // 1. Status Proyek
     const projects = await this.prisma.projects.findMany({
       where: {
@@ -143,6 +147,11 @@ export class DashboardService {
         category: true,
         member: {
           select: {
+            project: {
+              select: {
+                name: true,
+              },
+            },
             project_id: true,
           },
         },
@@ -211,12 +220,65 @@ export class DashboardService {
   // 1. Dashboard Kinerja Proyek --- END
 
   // 2. Dashboard Beban Kerja Karyawan --- START
-  async getWorkload(startDate: Date, endDate: Date): Promise<any> {
+  async getWorkload(
+    query: WorkloadDto,
+    user_id?: string | undefined,
+  ): Promise<any> {
+    const startDate = new Date(query.start_date);
+    const endDate = new Date(query.end_date);
+
+    // 0. Get User
+    const user = await this.prisma.users.findUnique({
+      where: { id: user_id },
+      include: { role: true },
+    });
+
+    let whereQueries: Prisma.projectsWhereInput = {
+      created_at: { gte: startDate, lte: endDate },
+    };
+
+    if (query?.project_id) {
+      whereQueries = {
+        ...whereQueries,
+        id: query.project_id,
+      };
+    }
+
+    if (user && user.role.code === UserRole.PROJECT_MANAGER) {
+      whereQueries = {
+        ...whereQueries,
+        member: {
+          some: {
+            employee: {
+              user_id,
+            },
+          },
+        },
+      };
+    }
+
+    const projects = await this.prisma.projects.findMany({
+      where: {
+        ...whereQueries,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
     // 1. Total Jam Kerja per Karyawan
     // Mengganti groupBy dengan findMany dan in-memory aggregation
     const activities = await this.prisma.activities.findMany({
       where: {
         date_at: { gte: startDate, lte: endDate },
+        member: {
+          project: {
+            id: {
+              in: projects.map((i) => i.id),
+            },
+          },
+        },
       },
       select: {
         member_id: true,
@@ -249,6 +311,11 @@ export class DashboardService {
     // 2. Jumlah Proyek per Karyawan
     // Mengganti groupBy dengan findMany dan in-memory counting
     const members = await this.prisma.members.findMany({
+      where: {
+        project: {
+          id: { in: projects.map((i) => i.id) },
+        },
+      },
       select: {
         employee_id: true,
         project_id: true,
@@ -341,11 +408,62 @@ export class DashboardService {
   // 2. Dashboard Beban Kerja Karyawan --- END
 
   // 3. Dashboard Produktivitas Tim --- START
-  async getProductivity(startDate: Date, endDate: Date): Promise<any> {
+  async getProductivity(
+    query: ProductivityDto,
+    user_id?: string | undefined,
+  ): Promise<any> {
+    const startDate = new Date(query.start_date);
+    const endDate = new Date(query.end_date);
+
+    // 0. Get User
+    const user = await this.prisma.users.findUnique({
+      where: { id: user_id },
+      include: { role: true },
+    });
+
+    let whereQueries: Prisma.projectsWhereInput = {
+      created_at: { gte: startDate, lte: endDate },
+    };
+
+    if (query?.project_id) {
+      whereQueries = {
+        ...whereQueries,
+        id: query.project_id,
+      };
+    }
+
+    if (user && user.role.code === UserRole.PROJECT_MANAGER) {
+      whereQueries = {
+        ...whereQueries,
+        member: {
+          some: {
+            employee: {
+              user_id,
+            },
+          },
+        },
+      };
+    }
+
+    const projects = await this.prisma.projects.findMany({
+      where: {
+        ...whereQueries,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
     // Fetch activities once for multiple metrics to optimize
     const activities = await this.prisma.activities.findMany({
       where: {
         date_at: { gte: startDate, lte: endDate },
+        member: {
+          project: {
+            id: { in: projects.map((i) => i.id) },
+          },
+        },
       },
       select: {
         category: true,
@@ -462,11 +580,62 @@ export class DashboardService {
   // 3. Dashboard Produktivitas Tim --- END
 
   // 4. Dashboard Tren Aktivitas --- START
-  async getActivityTrend(startDate: Date, endDate: Date): Promise<any> {
+  async getActivityTrend(
+    query: ActivityTrendDto,
+    user_id?: string | undefined,
+  ): Promise<any> {
+    const startDate = new Date(query.start_date);
+    const endDate = new Date(query.end_date);
+
+    // 0. Get User
+    const user = await this.prisma.users.findUnique({
+      where: { id: user_id },
+      include: { role: true },
+    });
+
+    let whereQueries: Prisma.projectsWhereInput = {
+      created_at: { gte: startDate, lte: endDate },
+    };
+
+    if (query?.project_id) {
+      whereQueries = {
+        ...whereQueries,
+        id: query.project_id,
+      };
+    }
+
+    if (user && user.role.code === UserRole.PROJECT_MANAGER) {
+      whereQueries = {
+        ...whereQueries,
+        member: {
+          some: {
+            employee: {
+              user_id,
+            },
+          },
+        },
+      };
+    }
+
+    const projects = await this.prisma.projects.findMany({
+      where: {
+        ...whereQueries,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
     // Fetch activities once for multiple metrics to optimize
     const activities = await this.prisma.activities.findMany({
       where: {
         date_at: { gte: startDate, lte: endDate },
+        member: {
+          project: {
+            id: { in: projects.map((i) => i.id) },
+          },
+        },
       },
       select: {
         date_at: true,

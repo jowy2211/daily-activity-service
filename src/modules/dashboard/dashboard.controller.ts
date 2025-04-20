@@ -16,45 +16,39 @@ export class DashboardController {
   @Get('project-performance')
   @UseGuards(
     AuthGuard,
-    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.STAFF]),
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER]),
   )
   async getProjectPerformance(
     @Query() query: ProjectPerformanceDto,
     @Req() req: any,
-  ): Promise<ProjectPerformanceDto> {
+  ) {
     return this.dashboardService.getProjectPerformance(query, req?.user?.id);
   }
 
   @Get('workload')
-  async getWorkload(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-  ): Promise<WorkloadDto> {
-    return this.dashboardService.getWorkload(
-      new Date(startDate),
-      new Date(endDate),
-    );
+  @UseGuards(
+    AuthGuard,
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER]),
+  )
+  async getWorkload(@Query() query: WorkloadDto, @Req() req: any) {
+    return this.dashboardService.getWorkload(query, req?.user?.id);
   }
 
   @Get('productivity')
-  async getProductivity(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-  ): Promise<ProductivityDto> {
-    return this.dashboardService.getProductivity(
-      new Date(startDate),
-      new Date(endDate),
-    );
+  @UseGuards(
+    AuthGuard,
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER]),
+  )
+  async getProductivity(@Query() query: ProductivityDto, @Req() req: any) {
+    return this.dashboardService.getProductivity(query, req?.user?.id);
   }
 
   @Get('activity-trend')
-  async getActivityTrend(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-  ): Promise<ActivityTrendDto> {
-    return this.dashboardService.getActivityTrend(
-      new Date(startDate),
-      new Date(endDate),
-    );
+  @UseGuards(
+    AuthGuard,
+    new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER]),
+  )
+  async getActivityTrend(@Query() query: ActivityTrendDto, @Req() req: any) {
+    return this.dashboardService.getActivityTrend(query, req?.user?.id);
   }
 }
