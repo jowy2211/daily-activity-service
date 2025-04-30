@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from 'nestjs-prisma';
 import { UserRole } from 'src/utils/helper/enum.utils';
+
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+
 import {
   ActivityTrendDto,
   ProductivityDto,
@@ -11,7 +13,7 @@ import {
 
 @Injectable()
 export class DashboardService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   // 1. Dashboard Kinerja Proyek --- START
   async getProjectPerformance(
@@ -28,7 +30,8 @@ export class DashboardService {
     });
 
     let whereQueries: Prisma.projectsWhereInput = {
-      created_at: { gte: startDate, lte: endDate },
+      start_date: { gte: startDate },
+      end_date: { lte: endDate },
     };
 
     if (query?.project_id) {
@@ -190,7 +193,6 @@ export class DashboardService {
     // 5. Anggota Tim Aktif
     const members = await this.prisma.members.findMany({
       where: {
-        created_at: { gte: startDate, lte: endDate },
         project_id: { in: projects.map((i) => i.id) },
       },
       select: {
@@ -234,7 +236,8 @@ export class DashboardService {
     });
 
     let whereQueries: Prisma.projectsWhereInput = {
-      created_at: { gte: startDate, lte: endDate },
+      start_date: { gte: startDate },
+      end_date: { lte: endDate },
     };
 
     if (query?.project_id) {
@@ -358,7 +361,7 @@ export class DashboardService {
       const avgHours =
         dailyTotals.length > 0
           ? dailyTotals.reduce((sum, hours) => sum + hours, 0) /
-          dailyTotals.length
+            dailyTotals.length
           : 0;
       return {
         employeeId: entry.employeeId,
@@ -422,7 +425,8 @@ export class DashboardService {
     });
 
     let whereQueries: Prisma.projectsWhereInput = {
-      created_at: { gte: startDate, lte: endDate },
+      start_date: { gte: startDate },
+      end_date: { lte: endDate },
     };
 
     if (query?.project_id) {
@@ -594,7 +598,8 @@ export class DashboardService {
     });
 
     let whereQueries: Prisma.projectsWhereInput = {
-      created_at: { gte: startDate, lte: endDate },
+      start_date: { gte: startDate },
+      end_date: { lte: endDate },
     };
 
     if (query?.project_id) {
