@@ -13,7 +13,7 @@ import {
 
 @Injectable()
 export class DashboardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   // 1. Dashboard Kinerja Proyek --- START
   async getProjectPerformance(
@@ -54,52 +54,18 @@ export class DashboardService {
       };
     }
 
-    // 1. Status Proyek
     const projects = await this.prisma.projects.findMany({
       where: {
         ...whereQueries,
       },
       select: {
         id: true,
+        name: true,
         status: true,
       },
     });
 
-    const projectStatus = projects.reduce((acc, project) => {
-      const status = project.status;
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const statusData = Object.entries(projectStatus).map(([status, count]) => ({
-      status,
-      count,
-    }));
-
-    // 2. Proyek Terlambat
-    // Tidak menggunakan groupBy, langsung findMany
-    const delayedProjects = await this.prisma.projects.findMany({
-      where: {
-        id: { in: projects.map((i) => i.id) },
-        end_date: { lt: endDate },
-        status: { not: 'COMPLETE' },
-      },
-      select: {
-        code: true,
-        name: true,
-        end_date: true,
-      },
-    });
-
-    const delayedData = delayedProjects.map((p) => ({
-      code: p.code,
-      name: p.name,
-      delayDays: Math.ceil(
-        (endDate.getTime() - p.end_date.getTime()) / (1000 * 60 * 60 * 24),
-      ),
-    }));
-
-    // 3. Total Jam Kerja per Proyek
+    // 1. Total Jam Kerja per Proyek
     // Mengganti groupBy dengan findMany dan in-memory aggregation
     const activities = await this.prisma.activities.findMany({
       where: {
@@ -138,7 +104,7 @@ export class DashboardService {
       }),
     );
 
-    // 4. Distribusi Aktivitas per Proyek
+    // 2. Distribusi Aktivitas per Proyek
     const activityDist = await this.prisma.activities.findMany({
       where: {
         date_at: { gte: startDate, lte: endDate },
@@ -190,33 +156,9 @@ export class DashboardService {
       }));
     });
 
-    // 5. Anggota Tim Aktif
-    const members = await this.prisma.members.findMany({
-      where: {
-        project_id: { in: projects.map((i) => i.id) },
-      },
-      select: {
-        project_id: true,
-      },
-    });
-    const memberCounts = members.reduce((acc, member) => {
-      const projectId = member.project_id;
-      acc[projectId] = (acc[projectId] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    const membersData = Object.entries(memberCounts).map(
-      ([projectId, count]) => ({
-        projectId,
-        memberCount: count,
-      }),
-    );
-
     return {
-      projectStatus: statusData,
-      delayedProjects: delayedData,
       hoursPerProject: hoursData,
       activityDistribution: activityData,
-      activeMembers: membersData,
     };
   }
   // 1. Dashboard Kinerja Proyek --- END
@@ -361,7 +303,7 @@ export class DashboardService {
       const avgHours =
         dailyTotals.length > 0
           ? dailyTotals.reduce((sum, hours) => sum + hours, 0) /
-            dailyTotals.length
+          dailyTotals.length
           : 0;
       return {
         employeeId: entry.employeeId,
@@ -476,6 +418,11 @@ export class DashboardService {
         member: {
           select: {
             project_id: true,
+            project: {
+              select: {
+                name: true,
+              },
+            },
             employee: {
               select: {
                 position: {
@@ -503,10 +450,10 @@ export class DashboardService {
 
     // 2. Rasio Produktivitas
     const productiveCategories = ['TASK', 'BUG_FIXING'];
+    const totalCount = activities.length;
     const productiveCount = activities.filter((a) =>
       productiveCategories.includes(a.category),
     ).length;
-    const totalCount = activities.length;
     const productivityRatio = [
       {
         type: 'Productive',
@@ -546,17 +493,26 @@ export class DashboardService {
         );
         const weekKey = weekStart.toISOString().split('T')[0];
         const key = `${projectId}:${weekKey}`;
-        acc[key] = acc[key] || { projectId, week: weekKey, count: 0 };
+        acc[key] = acc[key] || {
+          projectId,
+          week: weekKey,
+          count: 0,
+          projectName: activity.member.project.name,
+        };
         acc[key].count += 1;
         return acc;
-      }, {} as Record<string, { projectId: string; week: string; count: number }>);
+      }, {} as Record<string, { projectId: string; week: string; count: number; projectName: string }>);
     const meetingData = Object.values(meetingFrequency);
 
     // 5. Aktivitas per Proyek
     const activitiesPerProject = activities.reduce((acc, activity) => {
       const projectId = activity.member.project_id;
       if (!acc[projectId]) {
-        acc[projectId] = { taskCount: 0, bugFixingCount: 0 };
+        acc[projectId] = {
+          taskCount: 0,
+          bugFixingCount: 0,
+          projectName: activity.member.project.name,
+        };
       }
       if (activity.category === 'TASK') {
         acc[projectId].taskCount += 1;
@@ -564,10 +520,11 @@ export class DashboardService {
         acc[projectId].bugFixingCount += 1;
       }
       return acc;
-    }, {} as Record<string, { taskCount: number; bugFixingCount: number }>);
+    }, {} as Record<string, { taskCount: number; bugFixingCount: number; projectName: string }>);
     const activitiesData = Object.entries(activitiesPerProject).map(
       ([projectId, data]) => ({
         projectId,
+        projectName: data.projectName,
         taskCount: data.taskCount,
         bugFixingCount: data.bugFixingCount,
       }),
@@ -649,6 +606,11 @@ export class DashboardService {
         member: {
           select: {
             project_id: true,
+            project: {
+              select: {
+                name: true,
+              },
+            },
             employee: {
               select: {
                 id: true,
@@ -681,11 +643,16 @@ export class DashboardService {
       const month = getMonthKey(activity.date_at);
       const key = `${projectId}:${month}`;
       if (!acc[key]) {
-        acc[key] = { month, projectId, totalHours: 0 };
+        acc[key] = {
+          month,
+          projectId,
+          totalHours: 0,
+          projectName: activity.member.project.name,
+        };
       }
       acc[key].totalHours += activity.time_spent;
       return acc;
-    }, {} as Record<string, { month: string; projectId: string; totalHours: number }>);
+    }, {} as Record<string, { month: string; projectId: string; totalHours: number; projectName: string }>);
     const monthlyHours = Object.values(monthlyHoursMap);
 
     // 2. Tren Kategori Aktivitas
@@ -712,14 +679,16 @@ export class DashboardService {
           dailyHours: {},
         };
       }
+
       acc[employeeId].dailyHours[dateKey] =
         (acc[employeeId].dailyHours[dateKey] || 0) + activity.time_spent;
       return acc;
     }, {} as Record<string, { employeeId: string; employeeName: string; dailyHours: Record<string, number> }>);
     const productiveDays = Object.values(productiveDaysMap).map((entry) => {
       const productiveDaysCount = Object.values(entry.dailyHours).filter(
-        (hours) => hours > 6,
+        (hours) => hours > 8,
       ).length;
+
       return {
         employeeId: entry.employeeId,
         employeeName: entry.employeeName,
