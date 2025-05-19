@@ -1,4 +1,12 @@
 import {
+  AuthGuard,
+  ParamsTableDto,
+  ResponseInterceptor,
+  RolesGuard,
+} from 'src/utils';
+import { UserRole } from 'src/utils/helper/enum.utils';
+
+import {
   Body,
   Controller,
   Delete,
@@ -11,9 +19,9 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { AuthGuard, ParamsTableDto, RolesGuard } from 'src/utils';
-import { UserRole } from 'src/utils/helper/enum.utils';
+
 import { CreateProjectDto } from './dto/create-project.dto';
 import {
   UpdateProjectDto,
@@ -22,8 +30,9 @@ import {
 import { ProjectsService } from './projects.service';
 
 @Controller('projects')
+@UseInterceptors(ResponseInterceptor)
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) { }
+  constructor(private readonly projectsService: ProjectsService) {}
 
   @Get('portal')
   @UseGuards(
@@ -69,7 +78,9 @@ export class ProjectsController {
     new RolesGuard([UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.STAFF]),
   )
   async findMany(@Req() req: any, @Query() params: ParamsTableDto) {
-    return await this.projectsService.findMany(req.user.id, params);
+    const isStaff =
+      req?.user?.role?.code !== UserRole.ADMIN ? req.user.id : null;
+    return await this.projectsService.findMany(params, isStaff);
   }
 
   @Get(':code')

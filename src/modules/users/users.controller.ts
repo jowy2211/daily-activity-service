@@ -1,24 +1,33 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-  UseGuards,
-  Req,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
-import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { AuthGuard, ParamsTableDto, RolesGuard } from 'src/utils';
+  AuthGuard,
+  ParamsTableDto,
+  ResponseInterceptor,
+  RolesGuard,
+} from 'src/utils';
 import { UserRole } from 'src/utils/helper/enum.utils';
 
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UsersService } from './users.service';
+
 @Controller()
+@UseInterceptors(ResponseInterceptor)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

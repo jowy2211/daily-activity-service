@@ -1,4 +1,10 @@
 import {
+  AuthGuard,
+  ParamsTableDto,
+  ResponseInterceptor,
+} from 'src/utils';
+
+import {
   Body,
   Controller,
   Delete,
@@ -11,14 +17,16 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { AuthGuard, ParamsTableDto } from 'src/utils';
+
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 
 @Controller('activities')
 @UseGuards(AuthGuard)
+@UseInterceptors(ResponseInterceptor)
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 

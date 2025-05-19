@@ -13,7 +13,7 @@ import {
 
 @Injectable()
 export class DashboardService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   // 1. Dashboard Kinerja Proyek --- START
   async getProjectPerformance(
@@ -29,10 +29,7 @@ export class DashboardService {
       include: { role: true },
     });
 
-    let whereQueries: Prisma.projectsWhereInput = {
-      start_date: { gte: startDate },
-      end_date: { lte: endDate },
-    };
+    let whereQueries: Prisma.projectsWhereInput = {};
 
     if (query?.project_id) {
       whereQueries = {
@@ -177,10 +174,7 @@ export class DashboardService {
       include: { role: true },
     });
 
-    let whereQueries: Prisma.projectsWhereInput = {
-      start_date: { gte: startDate },
-      end_date: { lte: endDate },
-    };
+    let whereQueries: Prisma.projectsWhereInput = {};
 
     if (query?.project_id) {
       whereQueries = {
@@ -303,7 +297,7 @@ export class DashboardService {
       const avgHours =
         dailyTotals.length > 0
           ? dailyTotals.reduce((sum, hours) => sum + hours, 0) /
-          dailyTotals.length
+            dailyTotals.length
           : 0;
       return {
         employeeId: entry.employeeId,
@@ -366,10 +360,7 @@ export class DashboardService {
       include: { role: true },
     });
 
-    let whereQueries: Prisma.projectsWhereInput = {
-      start_date: { gte: startDate },
-      end_date: { lte: endDate },
-    };
+    let whereQueries: Prisma.projectsWhereInput = {};
 
     if (query?.project_id) {
       whereQueries = {
@@ -554,10 +545,7 @@ export class DashboardService {
       include: { role: true },
     });
 
-    let whereQueries: Prisma.projectsWhereInput = {
-      start_date: { gte: startDate },
-      end_date: { lte: endDate },
-    };
+    let whereQueries: Prisma.projectsWhereInput = {};
 
     if (query?.project_id) {
       whereQueries = {

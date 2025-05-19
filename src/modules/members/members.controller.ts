@@ -1,9 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { MembersService } from './members.service';
+import { ResponseInterceptor } from 'src/utils';
+
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseInterceptors,
+} from '@nestjs/common';
+
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { MembersService } from './members.service';
 
 @Controller('members')
+@UseInterceptors(ResponseInterceptor)
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 

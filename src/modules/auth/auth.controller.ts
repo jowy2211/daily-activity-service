@@ -1,9 +1,21 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { ResponseInterceptor } from 'src/utils';
+
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+
+import { AuthGuard } from '../../utils/guard/auth.guard';
 import { AuthService } from './auth.service';
 import { AuthDto } from './dto/auth.dto';
-import { AuthGuard } from '../../utils/guard/auth.guard';
 
 @Controller('auth')
+@UseInterceptors(ResponseInterceptor)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

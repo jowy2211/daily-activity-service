@@ -1,6 +1,19 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
-import { AuthGuard, RolesGuard } from 'src/utils';
+import {
+  AuthGuard,
+  ResponseInterceptor,
+  RolesGuard,
+} from 'src/utils';
 import { UserRole } from 'src/utils/helper/enum.utils';
+
+import {
+  Controller,
+  Get,
+  Query,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+
 import { DashboardService } from './dashboard.service';
 import {
   ActivityTrendDto,
@@ -10,8 +23,9 @@ import {
 } from './dto/dashboard.dto';
 
 @Controller('dashboard')
+@UseInterceptors(ResponseInterceptor)
 export class DashboardController {
-  constructor(private readonly dashboardService: DashboardService) { }
+  constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('project-performance')
   @UseGuards(

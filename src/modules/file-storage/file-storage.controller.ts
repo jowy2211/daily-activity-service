@@ -1,6 +1,7 @@
 import { Response } from 'express';
-import { createReadStream, unlinkSync } from 'fs';
+import { createReadStream } from 'fs';
 import { diskStorage } from 'multer';
+import { join } from 'path';
 import { ResponseInterceptor } from 'src/utils';
 import {
   DestinationFileExcel,
@@ -12,10 +13,10 @@ import {
   BadRequestException,
   Controller,
   Get,
-  Header,
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Res,
   StreamableFile,
   UploadedFile,
@@ -23,6 +24,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 
+import { ImportActivityMemberDto } from './dto/file-storage.dto';
 import { FileStorageService } from './file-storage.service';
 
 @Controller('file-storage')
@@ -30,30 +32,27 @@ export class FileStorageController {
   constructor(private readonly fileStorageService: FileStorageService) {}
 
   @HttpCode(HttpStatus.OK)
-  @Header('Content-Type', 'application/vnd.ms-excel')
   @Get('template')
   async template(
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     try {
-      const data = await this.fileStorageService.template();
+      const data = {
+        file: join(process.cwd(), './storage/daily-log-template.xlsx'),
+        name: 'daily-log-template.xlsx',
+      };
+
       const file = createReadStream(data.file);
 
-      // After download, file will removed
-      file.on('end', () => {
-        try {
-          unlinkSync(data.file);
-        } catch (error) {
-          throw new BadRequestException(
-            'An error occurred while removing the file.',
-          );
-        }
-      });
       res.set({
+        'Content-Type': 'application/vnd.ms-excel',
         'Content-Disposition': `attachment; filename=${data.name}`,
       });
 
-      return new StreamableFile(file);
+      return new StreamableFile(file, {
+        type: 'application/vnd.ms-excel',
+        disposition: `attachment; filename=${data.name}`,
+      });
     } catch (error) {
       throw new BadRequestException(error);
     }
@@ -74,10 +73,13 @@ export class FileStorageController {
     }),
     ResponseInterceptor,
   )
-  async importDailyLog(@UploadedFile() file: Express.Multer.File) {
+  async importDailyLog(
+    @UploadedFile() file: Express.Multer.File,
+    @Query() query: ImportActivityMemberDto,
+  ) {
     try {
       if (file) {
-        return await this.fileStorageService.import(file);
+        return await this.fileStorageService.import(file, query);
       }
       throw new BadRequestException('Something went wrong. Try again later.');
     } catch (error) {

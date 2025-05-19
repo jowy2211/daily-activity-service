@@ -1,8 +1,9 @@
-import { HttpAdapterHost, NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { PrismaClientExceptionFilter } from 'nestjs-prisma';
+
 import { Logger, ValidationPipe } from '@nestjs/common';
-import { ResponseInterceptor } from './utils';
+import { HttpAdapterHost, NestFactory } from '@nestjs/core';
+
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -26,7 +27,6 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
-  app.useGlobalInterceptors(new ResponseInterceptor());
 
   const logger = new Logger('Nest Application');
   await app.listen(3001);

@@ -1,11 +1,12 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
 
 interface ResponseInterface<T> {
   statusCode: number;
@@ -25,7 +26,7 @@ export class ResponseInterceptor<T>
       map((response) => ({
         statusCode: context.switchToHttp().getResponse().statusCode,
         message: response?.message ?? 'Success',
-        data: response?.data ?? response,
+        data: response?.data || response,
       })),
     );
   }

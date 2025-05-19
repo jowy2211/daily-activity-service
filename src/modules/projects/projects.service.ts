@@ -1,11 +1,13 @@
+import { PrismaService } from 'nestjs-prisma';
+import { ParamsTableDto } from 'src/utils';
+
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { members, Prisma, ProjectStatus } from '@prisma/client';
-import { PrismaService } from 'nestjs-prisma';
-import { ParamsTableDto } from 'src/utils';
+
 import { CreateProjectDto } from './dto/create-project.dto';
 import {
   UpdateProjectDto,
@@ -14,7 +16,7 @@ import {
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly prismaService: PrismaService) {}
 
   async create(payload: CreateProjectDto) {
     try {
@@ -99,17 +101,21 @@ export class ProjectsService {
     }
   }
 
-  async findMany(user_id: string, params: ParamsTableDto) {
+  async findMany(params: ParamsTableDto, user_id?: string) {
     try {
-      let where: Prisma.projectsWhereInput = {
-        member: {
-          some: {
-            employee: {
-              user_id,
+      let where: Prisma.projectsWhereInput = {};
+
+      if (user_id) {
+        where = {
+          member: {
+            some: {
+              employee: {
+                user_id,
+              },
             },
           },
-        },
-      };
+        };
+      }
 
       if (params.search) {
         where = {
@@ -142,6 +148,17 @@ export class ProjectsService {
           end_date: true,
           status: true,
           created_at: true,
+          member: {
+            select: {
+              id: true,
+              employee: {
+                select: {
+                  fullname: true,
+                  email: true,
+                },
+              },
+            },
+          },
           _count: true,
         },
       });
