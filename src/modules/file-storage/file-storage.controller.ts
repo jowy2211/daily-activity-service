@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { createReadStream } from 'fs';
+import { createReadStream, unlinkSync } from 'fs';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { ResponseInterceptor } from 'src/utils';
@@ -24,7 +24,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 
-import { ImportActivityMemberDto } from './dto/file-storage.dto';
+import {
+  ExportActivityMemberDto,
+  ImportActivityMemberDto,
+} from './dto/file-storage.dto';
 import { FileStorageService } from './file-storage.service';
 
 @Controller('file-storage')
@@ -84,6 +87,37 @@ export class FileStorageController {
       throw new BadRequestException('Something went wrong. Try again later.');
     } catch (error) {
       throw new BadRequestException(error);
+    }
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('export')
+  async exportDailyLog(
+    @Res({ passthrough: true }) res: Response,
+    @Query() query: ExportActivityMemberDto,
+  ): Promise<StreamableFile> {
+    try {
+      const data = await this.fileStorageService.export(query);
+      const file = createReadStream(data.file);
+
+      // After download, file will removed
+      file.on('end', () => {
+        try {
+          unlinkSync(data.file);
+        } catch (error) {
+          throw new BadRequestException(
+            'An error occurred while removing the file.',
+          );
+        }
+      });
+      res.set({
+        'Content-Type': 'application/vnd.ms-excel',
+        'Content-Disposition': `attachment; filename=${data.fileName}`,
+      });
+
+      return new StreamableFile(file);
+    } catch (error) {
+      throw error;
     }
   }
 }

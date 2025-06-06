@@ -1,7 +1,8 @@
 import { Workbook } from 'exceljs';
-import { unlinkSync } from 'fs';
+import { mkdirSync, unlinkSync } from 'fs';
 import { PrismaService } from 'nestjs-prisma';
 import { join } from 'path';
+import { CheckDir } from 'src/utils/helper/upload.helper';
 
 import {
   BadRequestException,
@@ -9,9 +10,12 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
-import { activities, ActivityCategory } from '@prisma/client';
+import { activities, ActivityCategory, Prisma } from '@prisma/client';
 
-import { ImportActivityMemberDto } from './dto/file-storage.dto';
+import {
+  ExportActivityMemberDto,
+  ImportActivityMemberDto,
+} from './dto/file-storage.dto';
 
 @Injectable()
 export class FileStorageService {
@@ -94,6 +98,112 @@ export class FileStorageService {
         .finally(() => {
           unlinkSync(path);
         });
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
+  }
+
+  async export(query: ExportActivityMemberDto) {
+    try {
+      const employee = await this.prismaService.employees.findUnique({
+        where: { id: query.employee_id },
+        select: {
+          fullname: true,
+        },
+      });
+      let where: Prisma.activitiesWhereInput = {
+        member: {
+          employee_id: query.employee_id,
+        },
+      };
+
+      if (query.project_id) {
+        where = {
+          member: {
+            employee_id: query.employee_id,
+            project_id: query.project_id,
+          },
+        };
+      }
+
+      const activity = await this.prismaService.activities.findMany({
+        where,
+        orderBy: { date_at: 'asc' },
+      });
+
+      const fileName = `${employee.fullname}-${
+        query.project_id
+      }-activity-data-${Date.now()}.xlsx`;
+      const workbook = new Workbook();
+
+      const worksheet = await workbook.addWorksheet(`Activities Data`);
+      worksheet.columns = [
+        {
+          header: 'Date',
+          key: 'date_at',
+          width: 25,
+          font: { bold: true, size: 14 },
+          alignment: { vertical: 'middle', horizontal: 'center' },
+        },
+        {
+          header: "What you've done today ?",
+          key: 'description',
+          width: 50,
+          font: { bold: true, size: 14 },
+          alignment: { vertical: 'middle', horizontal: 'center' },
+        },
+        {
+          header: 'Activity',
+          key: 'category',
+          width: 25,
+          font: { bold: true, size: 14 },
+          alignment: { vertical: 'middle', horizontal: 'center' },
+        },
+        {
+          header: 'Duration',
+          key: 'time_spent',
+          width: 25,
+          font: { bold: true, size: 14 },
+          alignment: { vertical: 'middle', horizontal: 'center' },
+        },
+        {
+          header: 'Any issue or note you want to share ?',
+          key: 'note',
+          width: 25,
+          font: { bold: true, size: 14 },
+          alignment: { vertical: 'middle', horizontal: 'center' },
+        },
+      ];
+
+      const rows = [];
+
+      for (let idxAct = 0; idxAct < activity.length; idxAct++) {
+        const act = activity[idxAct];
+
+        rows.push({
+          date_at: act.date_at,
+          description: act.description,
+          category: act.category,
+          time_spent: act.time_spent,
+          note: act.note,
+        });
+      }
+
+      worksheet.addRows(rows);
+
+      const check = CheckDir(`./storage/export`);
+
+      if (!check) mkdirSync(`./storage/export`, { recursive: true });
+
+      const filePromise = workbook.xlsx
+        .writeFile(`./storage/export/${fileName}`)
+        .then(() => {
+          return `./storage/export/${fileName}`;
+        });
+
+      const file = await filePromise.finally();
+
+      return { file, fileName };
     } catch (error) {
       throw new BadRequestException(error);
     }
